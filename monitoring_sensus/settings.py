@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-y&@3wi4j)79o^p--vq-dh)((kgt6&+q#r#q5%(*dzyz5uj35*4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# 🌐 DIUBAH: Buka akses agar bisa berjalan di localhost dan domain PythonAnywhere
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -77,16 +78,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'monitoring_sensus.wsgi.application'
 
 
-# 🔄 CONFIG DATABASE: SUDAH MIGRASI KE POSTGRESQL 
-# ============================================================
+# 🔄 DIUBAH: Kembali menggunakan SQLite3 untuk PythonAnywhere Gratisan
+# ====================================================================
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'monitoring_bps',       # Nama database yang dibuat di pgAdmin
-        'USER': 'postgres',             # User default PostgreSQL
-        'PASSWORD': 'admin123', # 👈 GANTI DENGAN PASSWORD LOGIN PGADMIN KAMU
-        'HOST': 'localhost',            # Berjalan di server lokal laptop
-        'PORT': '5432',                 # Port standar PostgreSQL
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
