@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Petugas - BPS Monitoring{% endblock %}
+{% block page_title %}Dashboard Petugas{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card stat-card green p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small mb-1">Total Usaha Selesai</p>
+                    <h3 class="fw-bold mb-0">{{ total_selesai }}</h3>
+                </div>
+                <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stat-card red p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small mb-1">Total Bermasalah</p>
+                    <h3 class="fw-bold mb-0">{{ total_bermasalah }}</h3>
+                </div>
+                <div class="bg-danger bg-opacity-10 rounded-circle p-3">
+                    <i class="fas fa-times-circle text-danger fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="fas fa-history me-2"></i>Laporan 7 Hari Terakhir</h6>
+        <a href="{% url 'input_laporan' %}" class="btn btn-light btn-sm">
+            <i class="fas fa-plus me-1"></i>Input Laporan
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Selesai</th>
+                        <th>Bermasalah</th>
+                        <th>Catatan</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in laporan %}
+                    <tr>
+                        <td>{{ l.tanggal_laporan }}</td>
+                        <td><span class="badge bg-success">{{ l.jumlah_selesai }}</span></td>
+                        <td><span class="badge bg-danger">{{ l.jumlah_bermasalah }}</span></td>
+                        <td>{{ l.catatan|default:"-" }}</td>
+                        <td>
+                            {% if l.status_validasi == 'menunggu' %}
+                            <span class="badge bg-warning text-dark">Menunggu</span>
+                            {% elif l.status_validasi == 'disetujui' %}
+                            <span class="badge bg-success">Disetujui</span>
+                            {% else %}
+                            <span class="badge bg-danger">Ditolak</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">Belum ada laporan</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

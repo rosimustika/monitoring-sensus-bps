@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Admin - BPS Monitoring{% endblock %}
+{% block page_title %}Dashboard Admin{% endblock %}
+
+{% block content %}
+{% if belum_lapor > 0 %}
+<div class="alert alert-warning shadow-sm mb-3">
+    ⚠️ {{ belum_lapor }} petugas belum melapor hari ini
+</div>
+{% endif %}
+
+{% if progress_total < 70 %}
+<div class="alert alert-danger shadow-sm mb-3">
+    🚨 Progress masih rendah ({{ progress_total }}%)
+</div>
+{% endif %}
+
+<div class="mb-4">
+    <a href="{% url 'export_excel' %}" class="btn btn-success me-2">
+        <i class="fas fa-file-excel me-1"></i> Export Excel
+    </a>
+    <a href="{% url 'export_pdf' %}" class="btn btn-danger">
+        <i class="fas fa-file-pdf me-1"></i> Export PDF
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card blue p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small mb-1">Total Wilayah</p>
+                    <h3 class="fw-bold mb-0">{{ total_wilayah|default:"0" }}</h3>
+                </div>
+                <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                    <i class="fas fa-map-marker-alt text-primary fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card green p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small mb-1">Total Petugas Aktif</p>
+                    <h3 class="fw-bold mb-0">{{ total_petugas|default:"0" }}</h3>
+                </div>
+                <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                    <i class="fas fa-users text-success fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card orange p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small mb-1">Total Laporan</p>
+                    <h3 class="fw-bold mb-0">{{ total_laporan|default:"0" }}</h3>
+                </div>
+                <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                    <i class="fas fa-file-alt text-warning fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card red p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <p class="text-muted small mb-1">Total Kendala</p>
+                    <h3 class="fw-bold mb-0">{{ total_kendala|default:"0" }}</h3>
+                </div>
+                <div class="bg-danger bg-opacity-10 rounded-circle p-3">
+                    <i class="fas fa-exclamation-triangle text-danger fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-chart-bar me-2"></i>Progres Pendataan Per Wilayah
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="grafikProgres" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-danger text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-chart-pie me-2"></i>Jenis Kendala
+                </h6>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                {% if kendala_data %}
+                <canvas id="grafikKendala"></canvas>
+                {% else %}
+                <p class="text-muted text-center">Belum ada data kendala</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-success text-white py-3">
+        <h6 class="mb-0 fw-bold">
+            <i class="fas fa-tasks me-2"></i>Progres Per Wilayah
+        </h6>
+    </div>
+    <div class="card-body">
+        {% for item in progres_wilayah %}
+        <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="fw-semibold small">{{ item.label }}</span>
+                <span class="small text-muted">
+                    {{ item.selesai }} / {{ item.target }} usaha
+                </span>
+            </div>
+            <div class="progress" style="height: 20px;">
+                <div class="progress-bar bg-success progress-dynamic" data-width="{{ item.persen|default:0 }}">
+                    {{ item.persen }}%
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted text-center">Belum ada data progres</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-primary text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-clock me-2"></i>Laporan Terbaru
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Petugas</th>
+                                <th>Wilayah</th>
+                                <th>Tanggal</th>
+                                <th>Selesai</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for laporan in laporan_terbaru %}
+                            <tr>
+                                <td>{{ laporan.petugas.nama }}</td>
+                                <td>{{ laporan.wilayah.nama_kecamatan|default:"-" }}</td>
+                                <td>{{ laporan.tanggal_laporan }}</td>
+                                <td><span class="badge bg-success">{{ laporan.jumlah_selesai }}</span></td>
+                                <td>
+                                    {% if laporan.status_validasi == 'menunggu' %}
+                                    <span class="badge bg-warning text-dark">Menunggu</span>
+                                    {% elif laporan.status_validasi == 'disetujui' %}
+                                    <span class="badge bg-success">Disetujui</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Ditolak</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">Belum ada laporan</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-danger text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-exclamation-circle me-2"></i>Kendala Terbaru
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Jenis Kendala</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for kendala in kendala_terbaru %}
+                            <tr>
+                                <td>{{ kendala.get_jenis_kendala_display }}</td>
+                                <td>
+                                    {% if kendala.status_penanganan == 'belum' %}
+                                    <span class="badge bg-danger">Belum</span>
+                                    {% elif kendala.status_penanganan == 'proses' %}
+                                    <span class="badge bg-warning text-dark">Proses</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Selesai</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center text-muted py-3">Belum ada kendala</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header bg-dark text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-chart-bar me-2"></i>Klasterisasi Kinerja Kecamatan (K-Means)
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chartKmeans" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header bg-dark text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-list me-2"></i>Status Wilayah Hasil Analisis
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kecamatan</th>
+                                <th>Rata-rata Progress</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in dashboard_data %}
+                            <tr>
+                                <td><strong>{{ row.kecamatan }}</strong></td>
+                                <td>{{ row.persentase }}%</td>
+                                <td>
+                                    <span class="badge k-means-badge" data-warna="{{ row.warna }}">
+                                        {{ row.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">Belum ada data analisis klaster</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-dark text-white py-3">
+        <h6 class="mb-0 fw-bold">
+            <i class="fas fa-user-clock me-2"></i>Status Real-time Laporan Petugas Sensus
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="list-group">
+            {% for p in status_petugas %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <b>{{ p.nama }}</b>
+                {% if p.selisih == 0 %}
+                    <span class="badge bg-success">Sudah Lapor Hari Ini</span>
+                {% elif p.selisih <= 2 %}
+                    <span class="badge bg-warning text-dark">Belum Lapor ({{ p.selisih }} hari)</span>
+                {% elif p.selisih %}
+                    <span class="badge bg-danger">Alpha ({{ p.selisih }} hari)</span>
+                {% else %}
+                    <span class="badge bg-danger">Belum Pernah Mengisi Laporan</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div id="django-kmeans-data" class="d-none">
+    {% for row in dashboard_data %}
+        <span class="k-item" data-kecamatan="{{ row.kecamatan }}" data-persentase="{{ row.persentase }}" data-warna="{{ row.warna }}"></span>
+    {% endfor %}
+</div>
+
+<span id="raw-grafik-labels" class="d-none">{% if grafik_labels %}{{ grafik_labels|safe }}{% else %}[]{% endif %}</span>
+<span id="raw-grafik-selesai" class="d-none">{% if grafik_selesai %}{{ grafik_selesai|safe }}{% else %}[]{% endif %}</span>
+<span id="raw-grafik-target" class="d-none">{% if grafik_target %}{{ grafik_target|safe }}{% else %}[]{% endif %}</span>
+<span id="raw-grafik-bermasalah" class="d-none">{% if grafik_bermasalah %}{{ grafik_bermasalah|safe }}{% else %}[]{% endif %}</span>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+// Sinkronisasi Bar Animasi & Tampilan Warna Klasterisasi K-Means
+document.querySelectorAll('.progress-dynamic').forEach(el => {
+    el.style.width = el.getAttribute('data-width') + '%';
+});
+document.querySelectorAll('.k-means-badge').forEach(el => {
+    el.style.backgroundColor = el.getAttribute('data-warna');
+    el.style.color = 'black';
+});
+
+// Ekstraksi Struktur Objek Analisis Klaster ML
+const labelKmeans = [];
+const progressKmeans = [];
+const warnaKmeans = [];
+
+document.querySelectorAll('#django-kmeans-data .k-item').forEach(el => {
+    labelKmeans.push(el.getAttribute('data-kecamatan'));
+    progressKmeans.push(parseFloat(el.getAttribute('data-persentase') || 0));
+    warnaKmeans.push(el.getAttribute('data-warna'));
+});
+
+// Inisialisasi Grafik K-Means Horizontal
+const ctxKmeans = document.getElementById('chartKmeans').getContext('2d');
+new Chart(ctxKmeans, {
+    type: 'bar',
+    data: {
+        labels: labelKmeans,
+        datasets: [{
+            label: 'Rata-rata Progress (%)',
+            data: progressKmeans,
+            backgroundColor: warnaKmeans,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        indexAxis: 'y', 
+        responsive: true,
+        scales: {
+            x: { beginAtZero: true, max: 100 }
+        }
+    }
+});
+
+// Pemetaan Safelist Objek Python ke Array JSON Script
+const parsePythonList = (id) => {
+    const text = document.getElementById(id).textContent.trim();
+    try {
+        return JSON.parse(text.replace(/'/g, '"'));
+    } catch(e) {
+        return [];
+    }
+};
+
+const labels = parsePythonList('raw-grafik-labels');
+const dataSelesai = parsePythonList('raw-grafik-selesai');
+const dataTarget = parsePythonList('raw-grafik-target');
+const dataBermasalah = parsePythonList('raw-grafik-bermasalah');
+
+// Inisialisasi Multibar Chart BPS
+const ctxProgres = document.getElementById('grafikProgres').getContext('2d');
+new Chart(ctxProgres, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Target',
+                data: dataTarget,
+                backgroundColor: 'rgba(26, 60, 94, 0.3)',
+                borderColor: '#1a3c5e',
+                borderWidth: 2,
+            },
+            {
+                label: 'Selesai',
+                data: dataSelesai,
+                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                borderColor: '#28a745',
+                borderWidth: 2,
+            },
+            {
+                label: 'Bermasalah',
+                data: dataBermasalah,
+                backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                borderColor: '#dc3545',
+                borderWidth: 2,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            title: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+
+{% if kendala_data %}
+// Inisialisasi Doughnut Chart Komposisi Kendala Lapangan
+const ctxKendala = document.getElementById('grafikKendala').getContext('2d');
+new Chart(ctxKendala, {
+    type: 'doughnut',
+    data: {
+        labels: {{ kendala_labels|safe }},
+        datasets: [{
+            data: {{ kendala_data|safe }},
+            backgroundColor: [
+                '#1a3c5e', '#28a745', '#dc3545',
+                '#fd7e14', '#6f42c1', '#20c997', '#ffc107'
+            ],
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

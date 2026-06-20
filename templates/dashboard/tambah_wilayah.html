@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Tambah Wilayah - BPS Monitoring{% endblock %}
+{% block page_title %}Tambah Master Wilayah Sensus{% endblock %}
+
+{% block content %}
+<div class="card col-md-6 shadow-sm">
+    <div class="card-header bg-primary text-white py-3">
+        <h6 class="mb-0 fw-bold"><i class="fas fa-map-marked-alt me-2"></i>Form Tambah Wilayah</h6>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Kode Wilayah Resmi (BPS)</label>
+                <input type="text" name="kode_wilayah" class="form-control" placeholder="Contoh: 3504010001" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nama Kecamatan</label>
+                <input type="text" name="nama_kecamatan" class="form-control" placeholder="Contoh: Tulungagung Kota" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nama Kelurahan / Desa</label>
+                <input type="text" name="nama_kelurahan" class="form-control" placeholder="Contoh: Kampungdalem" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Target Muatan Usaha (Angka)</label>
+                <input type="number" name="target_usaha" class="form-control" value="0" min="0" required>
+            </div>
+
+            <div class="d-flex justify-content-between pt-2">
+                <a href="{% url 'daftar_wilayah' %}" class="btn btn-secondary">Kembali</a>
+                <button type="submit" class="btn btn-primary">Simpan Wilayah</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Input Laporan - BPS Monitoring{% endblock %}
+{% block page_title %}Input Laporan Harian{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-primary text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-plus-circle me-2"></i>Form Input Laporan Harian
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Section 1: Info Dasar -->
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="fas fa-info-circle me-2"></i>Informasi Dasar
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tanggal Laporan</label>
+                            <input type="date" name="tanggal_laporan" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Wilayah Tugas</label>
+                            <select name="wilayah" class="form-select" required>
+                                <option value="">-- Pilih Wilayah --</option>
+                                {% for w in wilayah_list %}
+                                <option value="{{ w.id }}">{{ w.nama_kecamatan }} - {{ w.nama_kelurahan }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Jumlah Usaha Selesai Didata</label>
+                            <input type="number" name="jumlah_selesai" class="form-control" min="0" value="0" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Jumlah Usaha Bermasalah</label>
+                            <input type="number" name="jumlah_bermasalah" class="form-control" min="0" value="0" id="jumlahBermasalah" oninput="toggleKendala(this.value)">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Catatan Umum</label>
+                            <textarea name="catatan" class="form-control" rows="3" placeholder="Tuliskan catatan laporan hari ini..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Input Kendala -->
+                    <div id="seksiKendala" style="display:none;">
+                        <hr>
+                        <h6 class="fw-bold text-danger mb-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Detail Kendala
+                        </h6>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Kamu melaporkan ada usaha bermasalah. Silakan isi detail kendala di bawah ini.
+                        </div>
+
+                        <div id="daftarKendala">
+                            <!-- Kendala item pertama -->
+                            <div class="kendala-item card border-danger mb-3 p-3">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Jenis Kendala</label>
+                                        <select name="jenis_kendala[]" class="form-select">
+                                            <option value="tidak_ditemukan">Usaha Tidak Ditemukan</option>
+                                            <option value="menolak">Pemilik Menolak</option>
+                                            <option value="alamat_salah">Alamat Tidak Sesuai</option>
+                                            <option value="tutup">Usaha Sudah Tutup</option>
+                                            <option value="akses_jalan">Akses Jalan Sulit</option>
+                                            <option value="cuaca">Kendala Cuaca</option>
+                                            <option value="lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Tingkat Kesulitan</label>
+                                        <select name="tingkat_kesulitan[]" class="form-select">
+                                            <option value="rendah">🟢 Rendah</option>
+                                            <option value="sedang">🟡 Sedang</option>
+                                            <option value="tinggi">🔴 Tinggi</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Deskripsi Kendala</label>
+                                        <textarea name="deskripsi_kendala[]" class="form-control" rows="2" placeholder="Jelaskan kendala yang ditemukan..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-outline-danger btn-sm mb-4" onclick="tambahKendala()">
+                            <i class="fas fa-plus me-1"></i>Tambah Kendala Lagi
+                        </button>
+                    </div>
+
+                    <!-- Tombol Submit -->
+                    <hr>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-2"></i>Simpan Laporan
+                        </button>
+                        <a href="{% url 'dashboard_petugas' %}" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-arrow-left me-2"></i>Kembali
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleKendala(value) {
+    const seksi = document.getElementById('seksiKendala');
+    if (parseInt(value) > 0) {
+        seksi.style.display = 'block';
+    } else {
+        seksi.style.display = 'none';
+    }
+}
+
+function tambahKendala() {
+    const container = document.getElementById('daftarKendala');
+    const item = document.createElement('div');
+    item.className = 'kendala-item card border-danger mb-3 p-3';
+    item.innerHTML = `
+        <div class="d-flex justify-content-end mb-2">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.kendala-item').remove()">
+                <i class="fas fa-trash"></i> Hapus
+            </button>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Jenis Kendala</label>
+                <select name="jenis_kendala[]" class="form-select">
+                    <option value="tidak_ditemukan">Usaha Tidak Ditemukan</option>
+                    <option value="menolak">Pemilik Menolak</option>
+                    <option value="alamat_salah">Alamat Tidak Sesuai</option>
+                    <option value="tutup">Usaha Sudah Tutup</option>
+                    <option value="akses_jalan">Akses Jalan Sulit</option>
+                    <option value="cuaca">Kendala Cuaca</option>
+                    <option value="lainnya">Lainnya</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Tingkat Kesulitan</label>
+                <select name="tingkat_kesulitan[]" class="form-select">
+                    <option value="rendah">🟢 Rendah</option>
+                    <option value="sedang">🟡 Sedang</option>
+                    <option value="tinggi">🔴 Tinggi</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-semibold">Deskripsi Kendala</label>
+                <textarea name="deskripsi_kendala[]" class="form-control" rows="2" placeholder="Jelaskan kendala yang ditemukan..."></textarea>
+            </div>
+        </div>
+    `;
+    container.appendChild(item);
+}
+</script>
+{% endblock %}

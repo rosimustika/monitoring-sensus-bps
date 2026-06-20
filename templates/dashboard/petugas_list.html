@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Petugas - BPS Monitoring{% endblock %}
+{% block page_title %}Data Petugas Lapangan{% endblock %}
+
+{% block content %}
+<div class="mb-3 d-flex justify-content-end">
+    <a href="{% url 'tambah_petugas' %}" class="btn btn-dark shadow-sm">
+        <i class="fas fa-user-plus me-1"></i> Tambah Petugas Baru
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white py-3">
+        <h6 class="mb-0 fw-bold">
+            <i class="fas fa-users me-2"></i>Daftar Petugas Sensus Aktif
+        </h6>
+    </div>
+    
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 70px;">No</th>
+                        <th>Nama Lengkap</th>
+                        <th>Username Akun</th>
+                        <th>Status</th>
+                        <th style="width: 180px;" class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in petugas %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ p.nama }}</strong></td>
+                        <td><span class="text-muted">@{{ p.user.username }}</span></td>
+                        <td>
+                            {% if p.status_aktif %}
+                            <span class="badge bg-success">Aktif</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Non-Aktif</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'edit_petugas' p.id %}" class="btn btn-warning btn-sm me-1">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'hapus_petugas' p.id %}" class="btn btn-danger btn-sm" 
+                               onclick="return confirm('Apakah Anda yakin ingin menghapus petugas {{ p.nama }}? Semua data akun loginnnya akan ikut terhapus.')">
+                                <i class="fas fa-trash"></i> Hapus
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="fas fa-user-slash fa-2x mb-2 d-block"></i>
+                            Belum ada petugas yang didaftarkan.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
