@@ -53,14 +53,14 @@ def dashboard_admin(request):
             total_selesai=Sum('jumlah_selesai'),
             total_bermasalah=Sum('jumlah_bermasalah')
         )
-        
+
         data_wilayah = []
         for stat in kecamatan_stats:
             nama_kec = stat['wilayah__nama_kecamatan'] or "Tanpa Nama"
             selesai = stat['total_selesai'] or 0
             bermasalah = stat['total_bermasalah'] or 0
             target = Wilayah.objects.filter(nama_kecamatan=nama_kec).aggregate(Sum('target_usaha'))['target_usaha__sum'] or 1
-            
+
             persentase = round((selesai / target) * 100, 1)
             data_wilayah.append({
                 'kecamatan': nama_kec,
@@ -82,7 +82,7 @@ def dashboard_admin(request):
     # Jalankan Model K-Means Prediksi (Skala Kecamatan)
     df_input = pd.DataFrame(data_wilayah)
     model_path = os.path.join(settings.BASE_DIR, 'saved_models')
-    
+
     try:
         with open(os.path.join(model_path, 'kmeans_model.pkl'), 'rb') as f:
             kmeans = pickle.load(f)
@@ -94,7 +94,7 @@ def dashboard_admin(request):
         X = df_input[['total_selesai', 'total_bermasalah', 'persentase']]
         X_scaled = scaler.transform(X)
         hasil_prediksi = kmeans.predict(X_scaled)
-        
+
         for idx, cluster_id in enumerate(hasil_prediksi):
             nama_status = status_map[cluster_id]
             data_wilayah[idx]['status'] = nama_status
@@ -104,7 +104,9 @@ def dashboard_admin(request):
                 data_wilayah[idx]['warna'] = '#ffc107'
             else:
                 data_wilayah[idx]['warna'] = '#dc3545'
-    except Exception:
+    except Exception as e:
+        # KITA SUNTIKKAN PESAN EROR ASLI DI SINI AGAR MUNCUL DI LAYAR WEB
+        messages.error(request, f'Eror Modul K-Means ML: {e}')
         for idx in range(len(data_wilayah)):
             data_wilayah[idx]['status'] = 'Belum Terklaster'
             data_wilayah[idx]['warna'] = '#6c757d'
@@ -123,7 +125,7 @@ def dashboard_admin(request):
     for w in wilayah_list:
         total_selesai_desa = ProgresHarian.objects.filter(wilayah=w).aggregate(Sum('jumlah_selesai'))['jumlah_selesai__sum'] or 0
         total_bermasalah_desa = ProgresHarian.objects.filter(wilayah=w).aggregate(Sum('jumlah_bermasalah'))['jumlah_bermasalah__sum'] or 0
-        
+
         label_desa = f"{w.nama_kecamatan}-{w.nama_kelurahan}"
         target_desa = w.target_usaha if w.target_usaha > 0 else 1
         persen_desa = round((total_selesai_desa / target_desa * 100), 1)
@@ -192,13 +194,13 @@ def dashboard_admin(request):
     kendala_terbaru_detail = Kendala.objects.select_related('progres__wilayah').order_by('-created_at')[:5]
 
     context = {
-        'total_wilayah': total_wilayah, 
+        'total_wilayah': total_wilayah,
         'total_petugas': total_petugas,
         'total_laporan': total_laporan,
         'total_kendala': total_kendala,
         'laporan_terbaru': laporan_terbaru,
         'kendala_terbaru': kendala_terbaru,
-        
+
         # Variabel Grafik & Progress Bar
         'grafik_labels': grafik_labels,
         'grafik_selesai': grafik_selesai,
@@ -206,9 +208,9 @@ def dashboard_admin(request):
         'grafik_bermasalah': grafik_bermasalah,
         'progres_wilayah': progres_wilayah,
         'wilayah_range': range(len(grafik_labels)),
-        
+
         # Variabel Analisis K-Means
-        'dashboard_data': data_wilayah, 
+        'dashboard_data': data_wilayah,
 
         # Variabel Peringatan & Kendala
         'status_petugas': status_petugas,
@@ -254,7 +256,7 @@ def input_laporan(request):
 
             jenis_list = request.POST.getlist('jenis_kendala[]')
             deskripsi_list = request.POST.getlist('deskripsi_kendala[]')
-            
+
             for i, jenis in enumerate(jenis_list):
                 deskripsi = deskripsi_list[i] if i < len(deskripsi_list) else ''
                 if jenis:
@@ -263,7 +265,7 @@ def input_laporan(request):
                         jenis_kendala=jenis,
                         deskripsi=deskripsi
                     )
-                    
+
             messages.success(request, 'Laporan dan kendala berhasil disimpan!')
             return redirect('dashboard_petugas')
         except Exception as e:
@@ -436,7 +438,7 @@ def tambah_wilayah(request):
             return redirect('daftar_wilayah')
         else:
             messages.error(request, 'Gagal: Kolom Kode, Kecamatan, dan Kelurahan wajib diisi!')
-            
+
     return render(request, 'dashboard/tambah_wilayah.html')
 
 
@@ -455,14 +457,14 @@ def edit_wilayah(request, pk):
         wilayah.kode = request.POST.get('kode_wilayah', '').strip()
         wilayah.nama_kecamatan = request.POST.get('nama_kecamatan', '').strip()
         wilayah.nama_kelurahan = request.POST.get('nama_kelurahan', '').strip()
-        
+
         target = request.POST.get('target_usaha', '0').strip()
         wilayah.target_usaha = int(target) if target.isdigit() else 0
-        
+
         wilayah.save()
         messages.success(request, f'Wilayah {wilayah.nama_kecamatan} berhasil diperbarui!')
         return redirect('daftar_wilayah')
-    
+
     return render(request, 'dashboard/edit_wilayah.html', {'wilayah': wilayah})
 
 
@@ -478,32 +480,47 @@ def hapus_wilayah(request, pk):
         messages.warning(request, f'Wilayah {nama_target} berhasil dihapus dari sistem!')
     except Exception as e:
         messages.error(request, f'Gagal menghapus data: {e}')
-        
+
     return redirect('daftar_wilayah')
 
 
 # ============================================================
-# ➕ UTILITY: TAMBAH USER / PETUGAS BARU (DISECURE)
+# ➕ UTILITY: TAMBAH USER / PETUGAS BARU (FIXED & SECURE)
 # ============================================================
 @login_required
 def tambah_petugas(request):
+    from django.db import transaction
+    import random # Kita gunakan library ini untuk generate NIP unik otomatis
+
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
         nama_lengkap = request.POST.get('nama', '').strip()
 
         if username and password and nama_lengkap:
-            try:
-                user_baru = User.objects.create_user(username=username, password=password)
-                Petugas.objects.create(
-                    user=user_baru,
-                    nama=nama_lengkap,
-                    status_aktif=True
-                )
-                messages.success(request, f'Petugas {nama_lengkap} berhasil didaftarkan!')
-                return redirect('daftar_petugas')
-            except Exception:
+            # 1. Cek manual di awal apakah username sudah terdaftar
+            if User.objects.filter(username=username).exists():
                 messages.error(request, 'Gagal menambah petugas: Username tersebut sudah dipakai.')
+            else:
+                try:
+                    # 2. Amankan dengan transaction.atomic
+                    with transaction.atomic():
+                        user_baru = User.objects.create_user(username=username, password=password)
+
+                        # Buat NIP dummy acak 18 digit unik khusus untuk BPS Sensus
+                        dummy_nip = str(random.randint(100000000000000000, 999999999999999999))
+
+                        # Simpan ke tabel Petugas lengkap dengan NIP-nya
+                        Petugas.objects.create(
+                            user=user_baru,
+                            nama=nama_lengkap,
+                            nip=dummy_nip, # <--- NIP otomatis disuntikkan di sini
+                            status_aktif=True
+                        )
+                    messages.success(request, f'Petugas {nama_lengkap} berhasil didaftarkan!')
+                    return redirect('daftar_petugas')
+                except Exception as e:
+                    messages.error(request, f'Eror Database pada tabel Petugas: {e}')
         else:
             messages.error(request, 'Gagal: Kolom Nama, Username, dan Password wajib diisi!')
 
@@ -537,7 +554,7 @@ def edit_petugas(request, pk):
 
         messages.success(request, f'Data petugas {petugas.nama} berhasil diperbarui!')
         return redirect('daftar_petugas')
-    
+
     return render(request, 'dashboard/edit_petugas.html', {'petugas': petugas})
 
 
@@ -550,13 +567,13 @@ def hapus_petugas(request, pk):
         petugas = Petugas.objects.get(id=pk)
         user_login = petugas.user
         nama_petugas = petugas.nama
-        
+
         petugas.delete()
         if user_login:
             user_login.delete()
-            
+
         messages.warning(request, f'Petugas {nama_petugas} dan akun loginnya berhasil dihapus!')
     except Exception as e:
         messages.error(request, f'Gagal menghapus data petugas: {e}')
-        
+
     return redirect('daftar_petugas')
